@@ -302,7 +302,7 @@ int main(void)
   Matrix matr = {0};
   SetTargetFPS(TARGET_FPS);
 
-  //DisableCursor();
+  DisableCursor();
 
   printf("%lld, %lld, %d\n", sizeof(*levelModel.meshes), sizeof(Mesh), levelModel.meshCount);
   printf("%d\n", levelModel.meshes[0].vertexCount);
