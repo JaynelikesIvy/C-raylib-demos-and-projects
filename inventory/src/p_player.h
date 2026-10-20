@@ -3,6 +3,7 @@
 
 #include "raylib.h"
 #include "Third-Party/raymath.h"
+#include <stdlib.h>
 
 #define GRAVITY         32.0f
 #define MAX_SPEED       20.0f
@@ -22,11 +23,13 @@ typedef struct Body{
   Vector3 position;
   Vector3 velocity;
   Vector3 dir;
+  Vector3 size;
   bool is_on_floor;
   int health;
 }Body;
 
 void UpdateCameraFPS(Camera *camera, Vector2 *lookRotation, Vector2 *lean, float headTimer, float walkLerp);
-void UpdateBody(Body *body, float rot, char side, char forward, bool jumpPressed, bool crouchHold);
+void UpdateBody(Body *body, float rot, char side, char forward, bool jumpPressed, bool crouchHold, Model level);
+BoundingBox* GetLevelModelBoundingBox(Model model);
 
 #endif

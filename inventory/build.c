@@ -6,10 +6,6 @@
 
 #define SPACE " "
 
-#ifdef _WIN32
-
-#endif
-
 bool auto_run = false;
 char name[32] = "main";
 

@@ -150,6 +150,8 @@ int main()
             break;
           }
           size_t offset = 0;
+
+          int damage = 0;
           
           NetworkCommands command = ReadByte(event.packet, &offset);
 
@@ -164,7 +166,9 @@ int main()
             if(ReadByte(event.packet, &offset))
             {
               targetID = ReadByte(event.packet, &offset);
-              players[targetID].health -= ReadByte(event.packet, &offset);
+              damage = ReadByte(event.packet, &offset);
+              if(players[targetID].health < damage) players[targetID].health = 0;
+              else players[targetID].health -= damage;
             }
 
             NetworkCommands outbound_command = update_player;
@@ -173,7 +177,7 @@ int main()
 
             players[playerID].validPosition = true;
 
-						uint8_t buffer[28] = { 0 };
+						uint8_t buffer[30] = { 0 };
 						buffer[0] = (uint8_t)outbound_command;
 						buffer[1] = (uint8_t)playerID;
 						*(float*)(buffer+2) = players[playerID].X;
@@ -183,12 +187,24 @@ int main()
 						*(float*)(buffer+18) = players[playerID].DY;
 						*(float*)(buffer+22) = players[playerID].DZ;
             buffer[26] = (uint8_t)targetID;
-            if(targetID != 255) buffer[27] = (uint8_t)players[targetID].health;
-            else buffer[27] = (uint8_t)0;
+            if(targetID != 255) 
+            {
+              buffer[27] = (uint8_t)players[targetID].health;
+              buffer[28] = (uint8_t)damage;
+              buffer[29] = (uint8_t)((players[targetID].health <= 0) ? 1:0);
+            }
+            else
+            {
+              buffer[27] = 0;
+              buffer[28] = 0;
+              buffer[29] = 0;
+            }
 
-						ENetPacket* packet = enet_packet_create(buffer, 28, ENET_PACKET_FLAG_RELIABLE);
+						ENetPacket* packet = enet_packet_create(buffer, 30, ENET_PACKET_FLAG_RELIABLE);
 						SendToAllBut(packet, playerID);
           }
+
+          if(players[targetID].health <= 0) players[targetID].health = 100;
         
           enet_packet_destroy(event.packet);
           break;

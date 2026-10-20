@@ -1,8 +1,36 @@
 #include "p_player.h"
+#include <stdio.h>
 
-void UpdateBody(Body *body, float rot, char side, char forward, bool jumpPressed, bool crouchHold)
+BoundingBox* GetLevelModelBoundingBox(Model model)
+{
+  BoundingBox* boundingBoxes = malloc(sizeof(BoundingBox)*model.meshCount);
+  for(int i = 0; i < model.meshCount; i++)
+  {
+    boundingBoxes[i] = GetMeshBoundingBox(model.meshes[i]);
+  } 
+  return boundingBoxes;
+}
+
+bool CheckPlayerCollisionLevel(BoundingBox* levelBounds, BoundingBox playerBounds)
+{
+  for(int i = 0; i < (sizeof(*levelBounds)/sizeof(BoundingBox)); i++)
+  {
+      if(CheckCollisionBoxes(levelBounds[i], playerBounds)) return true;
+  }
+  return false;
+}
+
+void UpdateBody(Body *body, float rot, char side, char forward, bool jumpPressed, bool crouchHold, Model level)
 {
     Vector2 input = (Vector2){ (float)side, (float)-forward };
+    
+    BoundingBox* levelBoxes = GetLevelModelBoundingBox(level);
+    for(int i = 0; i < level.meshCount; i++)
+    {
+        levelBoxes[i].min = Vector3Add(levelBoxes[i].min, (Vector3){10, 0, 10});
+        levelBoxes[i].max = Vector3Add(levelBoxes[i].max, (Vector3){10, 0, 10});     
+    }
+
 
     if ((side != 0) && (forward != 0)) input = Vector2Normalize(input);
 
@@ -39,17 +67,32 @@ void UpdateBody(Body *body, float rot, char side, char forward, bool jumpPressed
     body->velocity.x = hvel.x;
     body->velocity.z = hvel.z;
 
-    body->position.x += body->velocity.x*delta;
-    body->position.y += body->velocity.y*delta;
-    body->position.z += body->velocity.z*delta;
+    DrawModelWires(level, (Vector3){10, 0, 10}, 1.0f, WHITE);
 
-    if (body->position.y <= 0.0f)
+    body->position.x += body->velocity.x*delta;
+    BoundingBox playerBoundingBox = (BoundingBox){
+        (Vector3){body->position.x - body->size.x/2, body->position.y - body->size.y/2, body->position.z - body->size.z/2}, 
+        (Vector3){body->position.x + body->size.x/2, body->position.y + body->size.y, body->position.z + body->size.z/2}};
+    if(CheckPlayerCollisionLevel(levelBoxes, playerBoundingBox)) body->position.x -= body->velocity.x*delta;
+    body->position.y += body->velocity.y*delta;
+    playerBoundingBox = (BoundingBox){
+        (Vector3){body->position.x - body->size.x/2, body->position.y - body->size.y/2, body->position.z - body->size.z/2}, 
+        (Vector3){body->position.x + body->size.x/2, body->position.y + body->size.y, body->position.z + body->size.z/2}};
+    if(CheckPlayerCollisionLevel(levelBoxes, playerBoundingBox)){ body->position.y -= body->velocity.y*delta; body->is_on_floor = true;}
+    body->position.z += body->velocity.z*delta;
+    playerBoundingBox = (BoundingBox){
+        (Vector3){body->position.x - body->size.x/2, body->position.y - body->size.y/2, body->position.z - body->size.z/2}, 
+        (Vector3){body->position.x + body->size.x/2, body->position.y + body->size.y, body->position.z + body->size.z/2}};
+    if(CheckPlayerCollisionLevel(levelBoxes, playerBoundingBox)) body->position.z -= body->velocity.z*delta;
+
+    if (body->position.y <= body->size.y)
     {
-        body->position.y = 0.0f;
+        body->position.y = body->size.y;
         body->velocity.y = 0.0f;
         body->is_on_floor = true;
     }
 }
+
 void UpdateCameraFPS(Camera *camera, Vector2 *lookRotation, Vector2 *lean, float headTimer, float walkLerp)
 {
     const Vector3 up = (Vector3){ 0.0f, 1.0f, 0.0f };

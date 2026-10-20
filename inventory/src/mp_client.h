@@ -26,8 +26,10 @@ bool Connected();
 int GetLocalPlayerID();
 void Disconnect();
 bool GetPlayerPos(int id, Vector3* pos);
-void UpdateLocalplayer(Vector3* movement_delta, float deltaT);
+void UpdateLocalplayer(Vector3 playerPosition, Vector3 playerDirection);
 void InitEnetGameClient(const char* server_address);
 bool GetPlayerHP(int id, int* health);
-
+bool IsPlayerActive(int id);
+bool GetPlayerKills(int id, int* killcount);
+bool GetPlayerDamage(int id, int* damagecount);
 #endif

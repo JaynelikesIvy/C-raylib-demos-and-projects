@@ -26,6 +26,8 @@ typedef struct RemotePlayer{
   Vector3 direction;
   double update_time;
   Vector3 extrapolated_position;
+  int damageDealt;
+  int points;
   int health;
 }RemotePlayer;
 
@@ -66,7 +68,8 @@ void HandleAddPlayer(ENetPacket* packet, size_t* offset)
   players[remote_player].direction = ReadPosition(packet, offset);
   players[remote_player].health = 100;
   players[remote_player].update_time = last_now;
-
+  players[remote_player].damageDealt = 0;
+  players[remote_player].points = 0;
 }
 
 void HandleRemovePlayer(ENetPacket* packet, size_t* offset)
@@ -85,8 +88,16 @@ void HandleMultiplayerUpdate(ENetPacket* packet, size_t* offset)
   players[remote_player].position = ReadPosition(packet, offset);
   players[remote_player].direction = ReadPosition(packet, offset);
   int targetID = ReadByte(packet, offset);
-  if(targetID != 255){ players[targetID].health = ReadByte(packet, offset);}
-  
+  if(targetID != 255)
+  { 
+    players[targetID].health = ReadByte(packet, offset);
+    players[remote_player].damageDealt += ReadByte(packet, offset);
+    players[remote_player].points += ReadByte(packet, offset);
+  }
+
+  if(players[local_playerID].health <= 0) players[targetID].health = 100;
+  if(players[targetID].health <= 0) players[targetID].health = 100;
+
   players[remote_player].update_time = last_now;
 
 }
@@ -95,7 +106,7 @@ void HandleMultiplayerUpdate(ENetPacket* packet, size_t* offset)
 void EnetHandler(double now, bool shot, int shotDamage, int targetID)
 {
   last_now = now;
-  if(shot) canShootWhenReady = true;
+  if(shot && targetID != -1) canShootWhenReady = true;
   if(targetID != -1) targetIDWhenReady = targetID;
 
   if(server == NULL) return;
@@ -114,7 +125,12 @@ void EnetHandler(double now, bool shot, int shotDamage, int targetID)
     buffer[26] = (uint8_t)targetIDWhenReady;
     buffer[27] = (uint8_t)shotDamage;
 
-    if(canShootWhenReady){ players[targetID].health -= shotDamage;}
+    if(canShootWhenReady)
+    { 
+      players[targetIDWhenReady].health -= shotDamage; 
+      players[local_playerID].damageDealt += shotDamage; 
+      if(players[targetIDWhenReady].health <= 0){ players[local_playerID].points++; players[targetIDWhenReady].health = 100;}
+    }
 
 
     packet = enet_packet_create(buffer, 28, ENET_PACKET_FLAG_RELIABLE);
@@ -231,15 +247,13 @@ int GetLocalPlayerID()
   return local_playerID;
 }
 
-void UpdateLocalplayer(Vector3* movement_delta, float deltaT)
+void UpdateLocalplayer(Vector3 playerPosition, Vector3 playerDirection)
 {
   if(local_playerID < 0) return;
 
-  players[local_playerID].position= Vector3Add(players[local_playerID].position, Vector3Scale(*movement_delta, deltaT));
+  players[local_playerID].position= playerPosition;
 
-  if(players[local_playerID].position.y < 0) players[local_playerID].position.y = 0;
-
-  players[local_playerID].direction = *movement_delta;
+  players[local_playerID].direction = playerDirection;
 
 }
 
@@ -258,6 +272,31 @@ bool GetPlayerHP(int id, int* health)
   if(id < 0 || id >= MAX_PLAYER_COUNT || !players[id].active)return false;
 
   *health = players[id].health; 
+
+  return true;
+}
+
+bool IsPlayerActive(int id)
+{
+  if(id < 0 || id >= MAX_PLAYER_COUNT || !players[id].active) return false;
+  else return true;
+}
+
+bool GetPlayerDamage(int id, int* damagecount)
+{
+  if(id < 0 || id >= MAX_PLAYER_COUNT || !players[id].active)return false;
+
+  *damagecount = players[id].damageDealt; 
+
+  return true;
+}
+
+
+bool GetPlayerKills(int id, int* killcount)
+{
+  if(id < 0 || id >= MAX_PLAYER_COUNT || !players[id].active)return false;
+
+  *killcount = players[id].points; 
 
   return true;
 }
