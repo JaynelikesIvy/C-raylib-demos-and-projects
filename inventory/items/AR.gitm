@@ -1,0 +1,9 @@
+'Item_Type':Gun
+'Name':AR
+'IsPrimary':1
+'Damage':10
+'Firerate':250
+'ReloadSpeed':1500
+'MaxAmmo':30
+'TotalAmmo':120
+end
