@@ -76,7 +76,7 @@ typedef enum{
 
 static GameState game_state = MAIN_MENU;
 
-static GameMode game_mode = DEATHMATCH;
+//static GameMode game_mode = DEATHMATCH;
 
 GameGunCollection game_guns = {0};
 
@@ -297,9 +297,6 @@ int main(void)
   levelModel = LoadModel("models/turret.obj");
   Texture2D texture = LoadTexture("models/turret_diffuse.png");
   levelModel.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = texture;
-
-  Material mat = LoadMaterialDefault();
-  Matrix matr = {0};
   SetTargetFPS(TARGET_FPS);
 
   DisableCursor();

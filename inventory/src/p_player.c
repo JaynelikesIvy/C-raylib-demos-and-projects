@@ -13,7 +13,7 @@ BoundingBox* GetLevelModelBoundingBox(Model model)
 
 bool CheckPlayerCollisionLevel(BoundingBox* levelBounds, BoundingBox playerBounds)
 {
-  for(int i = 0; i < (sizeof(*levelBounds)/sizeof(BoundingBox)); i++)
+  for(size_t i = 0; i < (sizeof(*levelBounds)/sizeof(BoundingBox)); i++)
   {
       if(CheckCollisionBoxes(levelBounds[i], playerBounds)) return true;
   }

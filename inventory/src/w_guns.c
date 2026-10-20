@@ -83,7 +83,8 @@ int GetGunIDByName(char* name, GameGunCollection gunCollection)
 
 char** GetGunNames(GameGunCollection gunCollection)
 {
-  char** buff;
+  char** buff = {0};
+  buff = buff; // unused warning annoys me a lil but it helps in the long run
   for(int i = 0; i < gunCollection.count; i++)
   {
     strcat(buff[i], gunCollection.gameGuns[i].name);
