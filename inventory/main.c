@@ -76,6 +76,8 @@ typedef enum{
 
 static GameState game_state = MAIN_MENU;
 
+static clock_t timeout = 0;
+
 //static GameMode game_mode = DEATHMATCH;
 
 GameGunCollection game_guns = {0};
@@ -83,6 +85,8 @@ GameGunCollection game_guns = {0};
 static clock_t waitTime = 0;
 
 Model levelModel = {0};
+
+static char textbuffer[256] = "255.255.255.255";
 
 void HandleLocalPlayerMovement()
 {
@@ -299,7 +303,7 @@ int main(void)
   levelModel.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = texture;
   SetTargetFPS(TARGET_FPS);
 
-  DisableCursor();
+  //DisableCursor();
 
   printf("%lld, %lld, %d\n", sizeof(*levelModel.meshes), sizeof(Mesh), levelModel.meshCount);
   printf("%d\n", levelModel.meshes[0].vertexCount);
@@ -339,11 +343,10 @@ int main(void)
 
       case SERVER_SELECT:
           ClearBackground(GetColor(GuiGetStyle(DEFAULT, BACKGROUND_COLOR)));
-          char textbuffer[256] = "127.0.0.1";
           int join_btn = -1;
-          GuiTextInputBox((Rectangle){100, 100, 200, 200}, "Server Select.", "Please Input A Valid IP Address", textbuffer, 12, "Join Server", &join_btn, false);
+          GuiTextInputBox((Rectangle){100, 100, 300, 300}, "Server Select.", "Please Input A Valid IP Address", textbuffer, 24, "Join Server", &join_btn, false);
           if(join_btn == 0) game_state = MAIN_MENU;
-          if(join_btn == 1){ InitEnetGameClient(textbuffer); game_state = PLAYING; DisableCursor();}
+          if(join_btn == 1){ InitEnetGameClient(textbuffer); game_state = PLAYING; DisableCursor(); timeout = clock();}
           break;
 
       
@@ -373,16 +376,35 @@ int main(void)
 
 
 
-        if(game_connection_state == Connecting){ ClearBackground(GetColor(GuiGetStyle(DEFAULT, BACKGROUND_COLOR))); GuiLabel((Rectangle){200, 200, 100, 100}, "Connecting...");}
+        if(game_connection_state == Connecting)
+        {
+          ClearBackground(GetColor(GuiGetStyle(DEFAULT, BACKGROUND_COLOR)));
+          if(timeout + 5000 < clock())
+          { 
+            GuiLabel((Rectangle){200, 200, 100, 100}, "Timed out");
+            if(GuiButton((Rectangle){200, 300, 100, 25}, "Return"))
+            {
+              game_state = SERVER_SELECT; 
+              Disconnect();
+              EnableCursor();
+            }
+          }
+          else
+          {          
+            GuiLabel((Rectangle){200, 200, 100, 100}, "Connecting...");
+          }
+        }
+
         int hp = 0;
         if(GetPlayerHP(GetLocalPlayerID(), &hp))
         {
           DrawText(TextFormat("Player:%d, HP:%d", GetLocalPlayerID(), hp), 10, 10, 24, RED); 
           DrawText(TextFormat("Mag:%d, Total:%d", game_guns.gameGuns[game_guns.current_gun].currentAmmo, game_guns.gameGuns[game_guns.current_gun].totalAmmo), 10, 30, 24, RED);
           DrawText(TextFormat("%s", game_guns.gameGuns[game_guns.current_gun].name), 10, 50, 24, RED);
-        }   
-        GameUI();     
-        DrawRectangle(248, 248, 4, 4, BLACK);
+          
+          GameUI();     
+          DrawRectangle(248, 248, 4, 4, BLACK);
+        }
         //HandleTerminal();
         break;
 

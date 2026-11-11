@@ -45,6 +45,7 @@ void InitEnetGameClient(const char* server_address)
   address.port = PORT;
   server = enet_host_connect(client, &address, 1, 0);
   if(server == NULL) printf("Failed to connect to server!\n");
+  else printf("success\n");
 }
 
 Vector3 ReadPosition(ENetPacket* packet, size_t* offset)
