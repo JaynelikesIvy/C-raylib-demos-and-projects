@@ -56,3 +56,9 @@ dkms.conf
 
 # debug information files
 *.dwo
+
+# Web stuff
+*.data
+*.js
+*.html
+*.wasm
