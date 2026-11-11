@@ -1,0 +1,2 @@
+emcc -o website.html website.c raylib/libraylib.web.a --preload-file blogs/ --preload-file lavanda/style_lavanda.rgs  --preload-file gifs/CMyBeloved.png --preload-file gifs/KonaDance.png --preload-file gifs/GezebelleGaburgably.png --preload-file gifs/floof.png --preload-file gifs/AlienCat.png -Os -Wall -s USE_GLFW=3 --shell-file raylib/minshell.html -DRAYGUI_FONT_ICONS_BAKING -DPLATFORM_WEB --profiling -s ASSERTIONS -s FORCE_FILESYSTEM=1 -s ALLOW_MEMORY_GROWTH
+emrun website.html

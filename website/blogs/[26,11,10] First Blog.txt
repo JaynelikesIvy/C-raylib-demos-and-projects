@@ -1,0 +1,20 @@
+Hello and welcome to the blogging section of my website :D
+A few things to note, it is super janky making a website with C 
+(even if I prefer it over the conventional way), 
+but do expect some features to be missing (like hyperlinks).
+Anyways, I'm going to try to write a few blog posts, mostly about how 
+I'm doing and what I'm working on and such.
+
+Originally I had also intended for minigames to be present on the site 
+but I kinda lost interest in doing that.
+Also wanted to make a chat thingy for random people to sign being here 
+if they wanted, oh well, maybe I'll add it later
+
+I do wanna make improvements to this over time because I still find it
+kind of bland, I feel like I could do so much more, I mean, I even got gifs
+(kinda) working, although the code for them is super messy and fucked up.
+Another thing is how I can't really center stuff, and also I need to be
+really picky with how I write text, it's a struggle but still, its fun :D
+
+I don't have too much to say now so thanks for reading! 
+It was super fun making this and I hope you could see that !

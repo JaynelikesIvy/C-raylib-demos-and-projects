@@ -1,0 +1,18 @@
+Hi hello hey, second blog here, and on the next day!!
+Currently bored in French class working on this, but oh well
+Had an annoying bug where I would use 200mb of memory on 
+the website, thankfully it was just because one of the gifs was massive
+so all I needed to do was downsize it.
+
+Also hopefully fixed a bug that caused the text in these blogs
+to dissapear, cuz now im just caching the text once instead
+of reading the file every frame (I know, I'm a talented dev)
+Don't know if it works so writing this to kill time to see 
+if it works, seems to be fine right now
+
+Might release this website today and like, link it on
+my medias for fun, still thinking of adding more,
+recently saw a website that had a guestbook people could sign and 
+I thought it was super cute and fun and I wanna do it now
+
+Until next time :D !

@@ -1,0 +1,1 @@
+This started as a test to get a game with an inventory working but ended up as a networking test because I found enet haha, there's no inventory here just a basic shooter, but I now have a much better understand of basic networking at least.
