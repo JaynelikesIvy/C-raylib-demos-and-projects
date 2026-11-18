@@ -18,30 +18,34 @@
 
 #include "src/w_guns.h"
 
+#include "src/types.h"
+
 #define GAME_ITEM ".gitm"
 
 #define TARGET_FPS 60
 
 Vector2 lookRotation = { 0 };
-float headTimer = 0.0f;
-float walkLerp = 0.0f;
-float headLerp = STAND_HEIGHT;
+f16 headTimer = 0.0f;
+f16 walkLerp = 0.0f;
+f16 headLerp = STAND_HEIGHT;
 Vector2 lean = { 0 };
+
+bool host = false;
 
 typedef struct ItemRegistry{
   ItemCollection* items;
-  int count;
+  i16 count;
 }ItemRegistry;
 
 typedef struct InventoryItem{
   ItemCollection item;
-  int amount;
-  int max_amount;
+  i16 amount;
+  i16 max_amount;
 }InventoryItem;
 
 typedef struct Inventory{
   InventoryItem *items;
-  int inventory_slots;
+  i16 inventory_slots;
 }Inventory;
 
 FilePathList path_list = {0};
@@ -59,6 +63,8 @@ pthread_t thread;
 
 static bool run_game = true;
 static bool started_server = false;
+
+static bool in_pause_menu = false;
 
 typedef enum{
   MAIN_MENU,
@@ -99,7 +105,7 @@ void HandleLocalPlayerMovement()
   bool crouching = IsKeyDown(KEY_LEFT_CONTROL);
   UpdateBody(&player, lookRotation.x, sideway, forward, IsKeyPressed(KEY_SPACE), crouching, levelModel);
 
-  float delta = GetFrameTime();
+  f16 delta = GetFrameTime();
   headLerp = Lerp(headLerp, (crouching ? CROUCH_HEIGHT : STAND_HEIGHT), 20.0f*delta);
   camera.position = (Vector3){
       player.position.x,
@@ -129,7 +135,7 @@ void HandleLocalPlayerMovement()
 void UpdateGame()
 {
   bool shot = false;
-  int targetID = -1;
+  i16 targetID = -1;
   Vector3 pos;
   switch(game_guns.gameGuns[game_guns.current_gun].gunState)
   {
@@ -157,11 +163,11 @@ void UpdateGame()
       break;
 
     case GUN_STATE_RELOAD:
-      int ammoDiff;
+      i16 ammoDiff;
       if(waitTime + game_guns.gameGuns[game_guns.current_gun].reloadSpeed <= clock())
       {
         ammoDiff = game_guns.gameGuns[game_guns.current_gun].maxAmmo - game_guns.gameGuns[game_guns.current_gun].currentAmmo;
-        for(int i = 0; i < ammoDiff; i++)
+        for(i16 i = 0; i < ammoDiff; i++)
         {
           game_guns.gameGuns[game_guns.current_gun].currentAmmo++;
           game_guns.gameGuns[game_guns.current_gun].totalAmmo--;
@@ -177,7 +183,13 @@ void UpdateGame()
   switch(game_connection_state)
   {
     case Disconnected:
-      run_game = false;
+      EnableCursor();
+      player.position = (Vector3){0, 0, 0};
+      game_state = MAIN_MENU;
+      started_server = false;
+      in_pause_menu = false;
+      game_connection_state = Connecting;
+      break;
 
     default: 
       break;
@@ -196,6 +208,12 @@ void UpdateGame()
 
     case Playing:
       if(WindowShouldClose())
+      {
+        Disconnect();
+        game_connection_state = Disconnecting;
+        break;
+      }
+      else if (GetLocalPlayerID() < 0)
       {
         Disconnect();
         game_connection_state = Disconnecting;
@@ -237,8 +255,8 @@ void GameUI()
   {
     if(IsPlayerActive(i))
     {
-      int kills = 0;
-      int damage = 0;
+      i16 kills = 0;
+      i16 damage = 0;
       GetPlayerKills(i, &kills);
       GetPlayerDamage(i, &damage);
       GuiDrawText(TextFormat("Player %d has %d kills and %d damage", i, kills, damage), (Rectangle){0, 50+i*10, 250, 100}, 0, WHITE);
@@ -260,7 +278,7 @@ int main(void)
 
   game_guns.count = 0;
 
-  for(unsigned int i = 0; i < path_list.count; i++)
+  for(ui16 i = 0; i < path_list.count; i++)
   {
     if(strcmp(GetFileExtension(path_list.paths[i]), GAME_ITEM) == 0)
     {
@@ -268,7 +286,7 @@ int main(void)
       item_registry.items[i] = GetFileData(path_list.paths[i]);
       item_registry.items[i].ID = i;
 
-      for(int j = 0; j < item_registry.items[i].count; j++) 
+      for(i16 j = 0; j < item_registry.items[i].count; j++) 
       {
         printf("%s, %s\n", item_registry.items[i].item_data[j].item_name, item_registry.items[i].item_data[j].item_value);
         if(strcmp(item_registry.items[i].item_data[j].item_value, PARSE_ITEM_GUN_TYPE) == 0) game_guns.count++;
@@ -279,7 +297,7 @@ int main(void)
 
   game_guns.gameGuns = malloc(sizeof(GameGun)*game_guns.count);
 
-  for(int i = 0; i < game_guns.count; i++)
+  for(i16 i = 0; i < game_guns.count; i++)
   {
     game_guns.gameGuns[i] = LoadGameGun(item_registry.items[i]);
   }
@@ -297,7 +315,8 @@ int main(void)
   }
 
   InitWindow(500, 500, "Game");
-
+  
+  SetExitKey(0);
   levelModel = LoadModel("models/turret.obj");
   Texture2D texture = LoadTexture("models/turret_diffuse.png");
   levelModel.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = texture;
@@ -325,7 +344,6 @@ int main(void)
     switch(game_state)
     {
       case MAIN_MENU:
-      
         ClearBackground(GetColor(GuiGetStyle(DEFAULT, BACKGROUND_COLOR)));
         if(GuiButton((Rectangle){50, 100, 100, 50}, "Host Game"))game_state = SERVER_HOST; 
         if(GuiButton((Rectangle){50, 150, 100, 50}, "Join Game"))game_state = SERVER_SELECT; 
@@ -334,10 +352,11 @@ int main(void)
         break;
 
       case SERVER_HOST:
+        game_connection_state = Connecting;
         InitEnetGameClient(HOST);
         game_state = PLAYING_HOST;
         DisableCursor();
-        break;
+      break;
 
 
 
@@ -346,7 +365,7 @@ int main(void)
           int join_btn = -1;
           GuiTextInputBox((Rectangle){100, 100, 300, 300}, "Server Select.", "Please Input A Valid IP Address", textbuffer, 24, "Join Server", &join_btn, false);
           if(join_btn == 0) game_state = MAIN_MENU;
-          if(join_btn == 1){ InitEnetGameClient(textbuffer); game_state = PLAYING; DisableCursor(); timeout = clock();}
+          if(join_btn == 1){ game_connection_state = Connecting; InitEnetGameClient(textbuffer); game_state = PLAYING; DisableCursor(); timeout = clock();}
           break;
 
       
@@ -358,7 +377,7 @@ int main(void)
       case PLAYING:
         BeginMode3D(camera);
         UpdateGame();
-        SetMousePosition(250, 250);
+        if(!in_pause_menu) SetMousePosition(250, 250);
         ClearBackground(BLUE);
         DrawCubeV((Vector3){0, 0, 0}, (Vector3){10, 10, 10}, RED);
         DrawModel(levelModel, (Vector3){10, 0, 10}, 1.0, WHITE);
@@ -375,7 +394,6 @@ int main(void)
         EndMode3D();
 
 
-
         if(game_connection_state == Connecting)
         {
           ClearBackground(GetColor(GuiGetStyle(DEFAULT, BACKGROUND_COLOR)));
@@ -384,9 +402,8 @@ int main(void)
             GuiLabel((Rectangle){200, 200, 100, 100}, "Timed out");
             if(GuiButton((Rectangle){200, 300, 100, 25}, "Return"))
             {
-              game_state = SERVER_SELECT; 
+              printf("disconnected bc of timeout menu\n");
               Disconnect();
-              EnableCursor();
             }
           }
           else
@@ -394,15 +411,27 @@ int main(void)
             GuiLabel((Rectangle){200, 200, 100, 100}, "Connecting...");
           }
         }
+        
+        if(IsKeyPressed(KEY_ESCAPE) && in_pause_menu){ in_pause_menu = false; DisableCursor();}
+        else if(IsKeyPressed(KEY_ESCAPE) && !in_pause_menu){in_pause_menu = true; EnableCursor();}
+
+        if(in_pause_menu)
+        {
+          ClearBackground(GetColor(GuiGetStyle(DEFAULT, BACKGROUND_COLOR)));
+          if(GuiButton((Rectangle){200, 300, 100, 25}, "Quit to Main Menu"))
+          {
+            printf("disconnected bc of pause menu\n");
+            Disconnect();
+          }
+        }
 
         int hp = 0;
-        if(GetPlayerHP(GetLocalPlayerID(), &hp))
+        if(GetPlayerHP(GetLocalPlayerID(), &hp) && !in_pause_menu)
         {
           DrawText(TextFormat("Player:%d, HP:%d", GetLocalPlayerID(), hp), 10, 10, 24, RED); 
           DrawText(TextFormat("Mag:%d, Total:%d", game_guns.gameGuns[game_guns.current_gun].currentAmmo, game_guns.gameGuns[game_guns.current_gun].totalAmmo), 10, 30, 24, RED);
           DrawText(TextFormat("%s", game_guns.gameGuns[game_guns.current_gun].name), 10, 50, 24, RED);
-          
-          GameUI();     
+          GameUI();
           DrawRectangle(248, 248, 4, 4, BLACK);
         }
         //HandleTerminal();
@@ -410,8 +439,6 @@ int main(void)
 
       default:
         break;
-
-      
     }
     EndDrawing();
   }

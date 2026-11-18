@@ -37,7 +37,7 @@ char blogBuff[2000] = "";
 
 #if defined(PLATFORM_WEB)
 
-#include <../emscripten.h>
+#include <./emscripten.h>
 
 EM_JS(ui16, canvas_get_width, (), {return document.getElementById('canvas').clientWidth;});
 
@@ -70,8 +70,6 @@ typedef struct ChatElement{
   String username;
   String message;
 }ChatElement;
-
-char chat[30];
 
 FilePathList blogList = {0};
 

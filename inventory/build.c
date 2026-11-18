@@ -8,36 +8,20 @@
 
 bool auto_run = false;
 char name[32] = "main";
+bool compile = false;
+bool compile_server = true;
 
 FilePathList file_path;
-
-
 
 #define GET_TIME(time) (float)(clock()-time)/CLOCKS_PER_SEC
 
 
-int CompileForLinux(int argc, char* argv[])
+int CompileForLinux()
 {
-    clock_t time = clock();
+  clock_t time = clock();
 
-  if(argc > 1)
-  {
-    for(int i = 1; i < argc; i++)
-    {
-      if(!strcmp(argv[i], "-auto-run"))
-      {
-        auto_run = true;
-        printf("%f [INFO]: auto-run enabled! (Note, custom exe commands cannot be used)\n", GET_TIME(time));
-      }
-      else if(!strcmp(argv[i], "-name"))
-      {
-        i++;
-        strcpy(name, argv[i]);
-        printf("%f [INFO]: Executable now named '%s'\n", GET_TIME(time), argv[i]);
-      }
-      else printf("%f [WARNING]: argument '%s' not recognized\n",GET_TIME(time), argv[i]);
-    }
-  }
+  if(!compile) return 0;
+
   printf("%f [INFO]: Checking for 'main.c' file...\n", GET_TIME(time));
   if(!FileExists("main.c")){ printf("%f [FATAL]: NO main.c SCRIPT FOUND, CANNOT COMPILE, ABORTING\n", GET_TIME(time)); return 1;}
   printf("%f [INFO]: Found 'main.c' file!\n", GET_TIME(time));
@@ -99,28 +83,12 @@ int CompileForLinux(int argc, char* argv[])
   return 0;
 }
 
-int CompileForWindows(int argc, char* argv[])
+int CompileForWindows()
 {
   clock_t time = clock();
 
-  if(argc > 1)
-  {
-    for(int i = 1; i < argc; i++)
-    {
-      if(!strcmp(argv[i], "-auto-run"))
-      {
-        auto_run = true;
-        printf("%f [INFO]: auto-run enabled! (Note, custom exe commands cannot be used)\n", GET_TIME(time));
-      }
-      else if(!strcmp(argv[i], "-name"))
-      {
-        i++;
-        strcpy(name, argv[i]);
-        printf("%f [INFO]: Executable now named '%s'\n", GET_TIME(time), argv[i]);
-      }
-      else printf("%f [WARNING]: argument '%s' not recognized\n",GET_TIME(time), argv[i]);
-    }
-  }
+  if(!compile) return 0;
+  
   printf("%f [INFO]: Checking for 'main.c' file...\n", GET_TIME(time));
   if(!FileExists("main.c")){ printf("%f [FATAL]: NO main.c SCRIPT FOUND, CANNOT COMPILE, ABORTING\n", GET_TIME(time)); return 1;}
   printf("%f [INFO]: Found 'main.c' file!\n", GET_TIME(time));
@@ -156,6 +124,7 @@ int CompileForWindows(int argc, char* argv[])
 
   printf("%f [INFO]: Checking for 'server', directory...\n", GET_TIME(time));
   if(!DirectoryExists("server")){ printf("%f [FATAL]: No 'server' directory found, game will not compile as server is NEEDED to run\n", GET_TIME(time)); return 1;}
+  else if(!compile_server) printf("%f [INFO]: Flag '--no-server (-ns)' used, ignoring server compilation.\n", GET_TIME(time));
   else
   {
     printf("%f [INFO]: 'server' directory found! Compiling server. \n", GET_TIME(time));
@@ -191,12 +160,44 @@ int CompileForWindows(int argc, char* argv[])
 
 int main(int argc, char* argv[])
 {
+  if(argc > 1)
+  {
+    for(int i = 1; i < argc; i++)
+    {
+      if(!strcmp(argv[i], "--help") || !strcmp(argv[i], "-h"))
+      {
+        printf("LIST OF COMMANDS:\n --compile (-c) compile application.\n --auto-run (-ar) -> autorun the application after compilation.\n --name (-n) [arg] -> give a name to the application.\n --no-server (-ns) -> Compile without server.\n");
+      }
+      else if(!strcmp(argv[i], "--compile") || !strcmp(argv[i], "-c"))
+      {
+        compile = true;
+      }
+      else if(!strcmp(argv[i], "--no-server") || !strcmp(argv[i], "-ns"))
+      {
+        compile_server = false;
+      }
+      else if(!strcmp(argv[i], "--auto-run") || !strcmp(argv[i], "-ar"))
+      {
+        auto_run = true;
+        printf("[FLAG]: auto-run enabled! (Note, custom exe commands cannot be used)\n");
+      }
+      else if(!strcmp(argv[i], "--name") || !strcmp(argv[i], "-n"))
+      {
+        i++;
+        strcpy(name, argv[i]);
+        printf("[FLAG]: Executable now named '%s'\n", argv[i]);
+      }
+      else printf("[FLAG WARN]: argument '%s' not recognized, for a list of commands, please use --help (-h)\n", argv[i]);
+    }
+  }
+
+
   #ifdef _WIN32
-  return CompileForWindows(argc, argv);
+  return CompileForWindows();
   #endif
 
   #ifdef __linux__
-  return CompileForLinux(argc, argv);
+  return CompileForLinux();
   #endif
 
 

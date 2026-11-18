@@ -46,6 +46,20 @@ int GetPlayerId(ENetPeer* peer)
 	return -1;
 }
 
+void DisconnectPeersFromServer()
+{
+  for(int i = 1; i < MAX_PLAYER_COUNT; i++)
+  {
+    if(!players[i].active) continue;
+    enet_peer_disconnect_now(players[i].peer, 0);
+    players[i].active = false;
+    players[i].peer = NULL;
+    players[i].validPosition = false;
+    
+  }
+  current_player_count = 0;
+}
+
 void SendToAllBut(ENetPacket* packet, int exceptPlayerId)
 {
 	for (int i = 0; i < MAX_PLAYER_COUNT; i++)
@@ -56,7 +70,6 @@ void SendToAllBut(ENetPacket* packet, int exceptPlayerId)
 		enet_peer_send(players[i].peer, 0, packet);
 	}
 }
-
 
 int main()
 {
@@ -213,16 +226,22 @@ int main()
         case ENET_EVENT_TYPE_DISCONNECT:
         {
           current_player_count--;
-          if(current_player_count <= 0)
-          {
-            online = false;
-          }
-
+        
           int playerID = GetPlayerId(event.peer);
+          
           if(playerID == -1) break;
+          
 
           players[playerID].active = false;
           players[playerID].peer = NULL;
+          if(playerID == 0)
+          {
+            printf("Disconneting\n");
+            DisconnectPeersFromServer();
+            online = false;
+            break;
+          }
+
 
           uint8_t buffer[2] = {0};
           buffer[0] = (uint8_t)remove_player;
@@ -236,14 +255,20 @@ int main()
         case ENET_EVENT_TYPE_DISCONNECT_TIMEOUT:
         {
           current_player_count--;
-          if(current_player_count == 0)
-          {
-            online = false;
-          }
-
+        
           int playerID = GetPlayerId(event.peer);
+         
           if(playerID == -1) break;
 
+
+          if(playerID == 0)
+          {
+            printf("Disconnecting (timeout)\n");
+            DisconnectPeersFromServer();
+            online = false;
+          }
+          
+          
           players[playerID].active = false;
           players[playerID].peer = NULL;
 
@@ -260,8 +285,10 @@ int main()
       }
     }
   }
-
+  
   enet_host_destroy(server);
   enet_deinitialize();
+  free(players);
+  printf("server closed\n");
   return 0;
 }

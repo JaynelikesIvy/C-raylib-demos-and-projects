@@ -2,6 +2,8 @@
 
 int local_playerID = -1;
 
+#define TIMEOUT_PERIOD 30000 
+
 bool canShootWhenReady = false;
 int targetIDWhenReady = -1;
 
@@ -202,6 +204,7 @@ void EnetHandler(double now, bool shot, int shotDamage, int targetID)
         break;
 
       case ENET_EVENT_TYPE_DISCONNECT:
+        printf("Enet Disconnected\n");
         if(client != NULL) enet_host_destroy(client);
 
         server = NULL;
@@ -234,6 +237,7 @@ void Disconnect()
   {
     want_disconnect = true;
     enet_peer_disconnect(server, 0);
+    for(int i; i < MAX_PLAYER_COUNT; i++){ if(players[i].active) players[i].active = false;} 
   }
 }
 
@@ -273,7 +277,7 @@ bool GetPlayerHP(int id, int* health)
   if(id < 0 || id >= MAX_PLAYER_COUNT || !players[id].active)return false;
 
   *health = players[id].health; 
-
+ 
   return true;
 }
 
